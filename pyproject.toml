@@ -1,0 +1,19 @@
+
+---
+
+## ⚙️ `pyproject.toml` (for PyPI)
+
+```toml
+[project]
+name = "student-marksheet"
+version = "0.1.0"
+description = "A simple Python library for generating student marksheets."
+authors = [
+  { name="Swami", email="your-email@example.com" }
+]
+readme = "README.md"
+requires-python = ">=3.7"
+license = { file = "LICENSE" }
+
+[project.urls]
+Homepage = "https://github.com/yourusername/student-marksheet"
