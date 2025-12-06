@@ -1,88 +1,135 @@
-from typing import Dict, Union, Any
+from __future__ import annotations
+import logging
+from typing import Dict, Union
+
+# Configure library-level logger
+logger = logging.getLogger(__name__)
+logger.addHandler(logging.NullHandler())  # Prevent unwanted default logging
 
 class Marksheet:
     """
-    A class to represent a student's academic marksheet.
-    
-    This class handles the storage of subject marks, calculation of 
-    totals, percentages, and grades, and provides methods to export 
-    the data in different formats (JSON-compatible dict or formatted text).
+    A simple class to manage and calculate a student's marksheet.
+
+    Features:
+        - Add subject-wise marks
+        - Calculate total marks, percentage, and grade
+        - Export in JSON/dict or formatted text form
+
+    Example (doctest):
+        >>> m = Marksheet("Swami", 1)
+        >>> m.add_mark("Math", 90)
+        >>> m.add_mark("Science", 80)
+        >>> m.total()
+        170
+        >>> round(m.percentage(), 2)
+        85.0
+        >>> m.grade()
+        'A'
     """
 
-    def __init__(self, student_name: str, roll_no: Union[str, int]):
+    def __init__(self, student_name: str, roll_no: Union[int, str]) -> None:
         """
-        Initialize the Marksheet object.
+        Initialize a new marksheet for a student.
 
         Args:
-            student_name (str): The name of the student.
-            roll_no (str or int): The unique roll number or ID of the student.
+            student_name: Name of the student.
+            roll_no: Roll number or unique ID.
+
+        Example:
+            >>> m = Marksheet("John", 5)
+            >>> m.student_name
+            'John'
+            >>> m.roll_no
+            5
         """
-        self.student_name = student_name
-        self.roll_no = roll_no
-        # Initialize an empty dictionary to store subject-wise marks
-        self.marks: Dict[str, Union[int, float]] = {}
+        self.student_name: str = student_name
+        self.roll_no: Union[int, str] = roll_no
+        self.marks: Dict[str, float] = {}
+
+        logger.debug(f"Created Marksheet for {student_name} (Roll {roll_no})")
 
     def add_mark(self, subject: str, score: Union[int, float]) -> None:
         """
-        Add or update a mark for a specific subject.
+        Add or update a subject mark.
 
         Args:
-            subject (str): The name of the subject (e.g., "Math").
-            score (int or float): The score obtained (must be between 0 and 100).
+            subject: Name of the subject.
+            score: Score between 0 and 100.
 
         Raises:
-            ValueError: If the score is not a number or is outside the 0-100 range.
+            ValueError: If score is not numeric or outside valid range.
+
+        Example:
+            >>> m = Marksheet("Swami", 1)
+            >>> m.add_mark("Math", 95)
+            >>> m.marks["Math"]
+            95
         """
-        # Validate that the score is a numeric type
         if not isinstance(score, (int, float)):
-            raise ValueError(f"Score for '{subject}' must be a number.")
+            raise ValueError("Score must be a number.")
+        if not (0 <= score <= 100):
+            raise ValueError("Score must be between 0 and 100.")
 
-        # Validate that the score is within a realistic range
-        if score < 0 or score > 100:
-            raise ValueError(f"Score for '{subject}' must be between 0 and 100.")
+        self.marks[subject] = float(score)
+        logger.info(f"Added score: {score} for subject '{subject}'")
 
-        self.marks[subject] = score
-
-    def total(self) -> Union[int, float]:
+    def total(self) -> float:
         """
-        Calculate the sum of all marks.
+        Returns the total marks.
 
-        Returns:
-            int or float: The total sum of marks added so far.
+        Example:
+            >>> m = Marksheet("Swami", 1)
+            >>> m.add_mark("Math", 50)
+            >>> m.add_mark("Sci", 25)
+            >>> m.total()
+            75
         """
-        return sum(self.marks.values())
+        total_value = sum(self.marks.values())
+        logger.debug(f"Computed total: {total_value}")
+        return total_value
 
     def percentage(self) -> float:
         """
-        Calculate the percentage based on the marks added.
-        
-        Assumes every subject is out of 100.
+        Calculates the percentage.
 
         Returns:
-            float: The calculated percentage. Returns 0 if no marks exist 
-            to avoid DivisionByZero errors.
+            A float value between 0 and 100.
+
+        Example:
+            >>> m = Marksheet("Swami", 1)
+            >>> m.add_mark("Math", 60)
+            >>> m.add_mark("Sci", 40)
+            >>> m.percentage()
+            50.0
         """
-        # Prevent division by zero if the marksheet is empty
         if len(self.marks) == 0:
             return 0.0
-        return self.total() / len(self.marks)
+
+        percentage_value = self.total() / len(self.marks)
+        logger.debug(f"Computed percentage: {percentage_value}")
+        return percentage_value
 
     def grade(self) -> str:
         """
-        Determine the letter grade based on the calculated percentage.
+        Determines the grade from percentage.
 
-        Grading Scale:
-            A+: >= 90
-            A : >= 75
-            B : >= 60
-            C : >= 45
-            D : < 45
+        Grade Rules:
+            A+ : >= 90
+            A  : >= 75
+            B  : >= 60
+            C  : >= 45
+            D  : < 45
 
-        Returns:
-            str: The letter grade.
+        Example:
+            >>> m = Marksheet("Swami", 1)
+            >>> m.add_mark("Math", 100)
+            >>> m.add_mark("Sci", 80)
+            >>> m.grade()
+            'A'
         """
         p = self.percentage()
-        
+        logger.debug(f"Evaluating grade for percentage: {p}")
+
         if p >= 90:
             return "A+"
         elif p >= 75:
@@ -94,16 +141,18 @@ class Marksheet:
         else:
             return "D"
 
-    def export_json(self) -> Dict[str, Any]:
+    def export_json(self) -> Dict[str, Union[str, int, float, dict]]:
         """
-        Generate a dictionary representation of the marksheet.
-        
-        Useful for API responses or saving to a database.
+        Export the marksheet as a JSON/dict.
 
-        Returns:
-            dict: A dictionary containing student details, marks, and calculated stats.
+        Example:
+            >>> m = Marksheet("Swami", 1)
+            >>> m.add_mark("Math", 90)
+            >>> data = m.export_json()
+            >>> data["grade"]
+            'A+'
         """
-        return {
+        data = {
             "student_name": self.student_name,
             "roll_no": self.roll_no,
             "marks": self.marks,
@@ -111,27 +160,29 @@ class Marksheet:
             "percentage": self.percentage(),
             "grade": self.grade()
         }
+        logger.debug(f"Exported JSON data: {data}")
+        return data
 
     def export_text(self) -> str:
         """
-        Generate a human-readable string representation of the marksheet.
-        
-        Useful for printing to console or saving to a text file.
+        Export the marksheet as formatted text.
 
-        Returns:
-            str: A formatted string suitable for display.
+        Example:
+            >>> m = Marksheet("Swami", 1)
+            >>> m.add_mark("Math", 100)
+            >>> "Math" in m.export_text()
+            True
         """
-        # Start constructing the formatted string
         text = f"Marksheet for {self.student_name} (Roll {self.roll_no})\n"
-        text += "-" * 50 + "\n"
-        
-        # Iterate through marks and append to string
+        text += "--------------------------------------------------\n"
+
         for subject, score in self.marks.items():
             text += f"{subject}: {score}\n"
-            
-        text += "-" * 50 + "\n"
+
+        text += "--------------------------------------------------\n"
         text += f"Total: {self.total()}\n"
         text += f"Percentage: {self.percentage():.2f}%\n"
         text += f"Grade: {self.grade()}\n"
-        
+
+        logger.debug("Exported text format marksheet.")
         return text
